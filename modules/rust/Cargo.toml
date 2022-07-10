@@ -1,0 +1,17 @@
+[workspace]
+members = [
+    "io",
+    "smartmeter",
+    "sml",
+]
+resolver = "2"
+
+[profile.dev]
+panic = "abort"
+opt-level = "z"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+opt-level = "z"
+split-debuginfo = "packed"

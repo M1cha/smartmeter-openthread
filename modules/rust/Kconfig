@@ -1,0 +1,5 @@
+config SMARTMETER_RUST
+	bool "smartmeter rust code"
+
+config SMARTMETER_RUST_LOGGER
+	bool "enable smartmeter logger"

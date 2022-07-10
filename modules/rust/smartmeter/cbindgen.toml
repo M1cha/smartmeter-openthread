@@ -1,0 +1,26 @@
+language = "C"
+style = "tag"
+
+[defines]
+"feature = logger" = "CONFIG_SMARTMETER_RUST_LOGGER"
+
+[export]
+prefix = "smr_"
+
+[export.rename]
+"CLogLevel" = "loglevel"
+"Context" = "context"
+"SinkCallbackOpt" = "sink_cb_t"
+"ReadFnOpt" = "read_cb_t"
+"MessageFnOpt" = "message_cb_t"
+"CallbackData" = "callback_data"
+"Value" = "value"
+
+[export.mangle]
+rename_types = "SnakeCase"
+
+[enum]
+rename_variants = "SnakeCase"
+prefix_with_name = true
+
+
