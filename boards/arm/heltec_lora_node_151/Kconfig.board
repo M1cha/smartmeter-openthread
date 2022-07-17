@@ -1,0 +1,3 @@
+config BOARD_HELTEC_LORA_NODE_151
+	bool "Heltec LoRa Node 151"
+	depends on SOC_STM32L151XC

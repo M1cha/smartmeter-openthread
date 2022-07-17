@@ -1,0 +1,12 @@
+/ {
+	chosen {
+		app,uart = &cdc_acm_uart0;
+	};
+};
+
+&usb {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+		label = "CDC_ACM_0";
+	};
+};

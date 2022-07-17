@@ -1,0 +1,30 @@
+[package]
+name = "smartmeter"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = [
+    "lib",
+    "staticlib",
+]
+
+[dependencies]
+chacha20poly1305 = { version = "0.9", default_features = false, features = ["heapless"] }
+io = { path = "../io", default-features = false }
+log = { version = "0.4", default-features = false, features = ["max_level_trace", "release_max_level_off"] }
+sml = { path = "../sml", default-features = false }
+
+[build-dependencies]
+cbindgen = { version = "0.24", default-features = false }
+
+[dev-dependencies]
+env_logger = "0.9"
+futures-util = { version = "0.3", features = ["std", "io"] }
+test-log = "0.2"
+tokio = { version = "1.18", features = ["rt", "macros"] }
+
+[features]
+default = ["std"]
+std = []
+logger = []

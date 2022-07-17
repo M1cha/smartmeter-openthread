@@ -1,0 +1,4 @@
+menu "modules"
+rsource "rust/Kconfig"
+rsource "temprng/Kconfig"
+endmenu

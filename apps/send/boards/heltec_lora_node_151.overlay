@@ -1,0 +1,29 @@
+/ {
+	chosen {
+		app,uart = &usart2;
+	};
+};
+
+&usart2 {
+	dmas = <&dma1 6 0x20440>,
+	       <&dma1 7 0x20480>;
+	dma-names = "rx", "tx";
+};
+
+
+&dma1 {
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		keys: partition@28000 {
+			label = "keys";
+			reg = <0x00028000 DT_SIZE_K(1)>;
+		};
+	};
+};
