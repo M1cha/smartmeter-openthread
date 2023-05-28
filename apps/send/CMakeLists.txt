@@ -6,11 +6,15 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(smartmeter_send)
 
 target_sources(app PRIVATE
-	src/lora.c
 	src/main.c
 	src/uart.c
 )
 
+if (CONFIG_LORA)
+target_sources(app PRIVATE
+	src/lora.c
+)
 target_sources(loramac-node PRIVATE
     src/lorahack.c
 )
+endif()

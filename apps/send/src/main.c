@@ -11,8 +11,10 @@ LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
 #define DEFAULT_UART_NODE DT_CHOSEN(app_uart)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_UART_NODE, okay), "No default UART specified in DT");
 
+#ifdef CONFIG_LORA
 #define DEFAULT_RADIO_NODE DT_ALIAS(lora0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay), "No default LoRa radio specified in DT");
+#endif
 
 struct smr_cipher {
 	uint8_t buf[32];
@@ -159,12 +161,14 @@ void main(void)
 		return;
 	}
 
+#ifdef CONFIG_LORA
 	ret = app_setup_lora(data, &cipher, DEVICE_DT_GET(DEFAULT_RADIO_NODE));
 	if (ret) {
 		LOG_ERR("failed to init LORA: %d", ret);
 		app_unrecoverable_error();
 		return;
 	}
+#endif
 
 	ret = app_setup_uart(data, DEVICE_DT_GET(DEFAULT_UART_NODE));
 	if (ret) {
