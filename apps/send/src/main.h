@@ -1,7 +1,9 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <smartmeter-rust.h>
 #include <stdint.h>
+#include <zephyr/device.h>
 
 struct app_data {
 	float active_energy;
