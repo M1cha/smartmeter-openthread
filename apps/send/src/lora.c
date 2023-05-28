@@ -1,6 +1,6 @@
-#include <random/rand32.h>
 #include <smartmeter-rust.h>
 #include <zephyr/drivers/lora.h>
+#include <zephyr/random/rand32.h>
 
 #include "lorahack.h"
 #include "main.h"

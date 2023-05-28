@@ -40,23 +40,23 @@ static uint32_t logger_sink(const enum smr_loglevel level, const void *const buf
 		} else {
 			switch (level) {
 			case smr_loglevel_error:
-				LOG_ERR("%.*s", logbuf_used, log_strdup(logbuf));
+				LOG_ERR("%.*s", logbuf_used, logbuf);
 				break;
 
 			case smr_loglevel_warn:
-				LOG_WRN("%.*s", logbuf_used, log_strdup(logbuf));
+				LOG_WRN("%.*s", logbuf_used, logbuf);
 				break;
 
 			case smr_loglevel_info:
-				LOG_INF("%.*s", logbuf_used, log_strdup(logbuf));
+				LOG_INF("%.*s", logbuf_used, logbuf);
 				break;
 
 			case smr_loglevel_debug:
-				LOG_DBG("%.*s", logbuf_used, log_strdup(logbuf));
+				LOG_DBG("%.*s", logbuf_used, logbuf);
 				break;
 
 			case smr_loglevel_trace:
-				LOG_DBG("TRACE - %.*s", logbuf_used, log_strdup(logbuf));
+				LOG_DBG("TRACE - %.*s", logbuf_used, logbuf);
 				break;
 
 			default:
@@ -90,7 +90,7 @@ static int read_key(uint8_t key[KEYSIZE])
 	const struct flash_area *area;
 	const size_t key_size = KEYSIZE;
 
-	ret = flash_area_open(FLASH_AREA_ID(keys), &area);
+	ret = flash_area_open(FIXED_PARTITION_ID(keys), &area);
 	if (ret) {
 		LOG_ERR("failed to open flash area: %d", ret);
 		return ret;
