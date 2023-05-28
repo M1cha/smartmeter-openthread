@@ -3,3 +3,6 @@ config SMARTMETER_RUST
 
 config SMARTMETER_RUST_LOGGER
 	bool "enable smartmeter logger"
+
+config SMARTMETER_DEBUG_PROFILE
+	bool "build with debug information"
