@@ -125,6 +125,16 @@ err_close:
 	return ret;
 }
 
+void app_uart_data_received(float active_energy, float active_power)
+{
+	ARG_UNUSED(active_energy);
+	ARG_UNUSED(active_power);
+
+#ifdef CONFIG_BT
+	app_bluetooth_send_data(active_energy, active_power);
+#endif
+}
+
 void main(void)
 {
 	static struct app_data data_ = { 0 };
@@ -165,6 +175,15 @@ void main(void)
 	ret = app_setup_lora(data, &cipher, DEVICE_DT_GET(DEFAULT_RADIO_NODE));
 	if (ret) {
 		LOG_ERR("failed to init LORA: %d", ret);
+		app_unrecoverable_error();
+		return;
+	}
+#endif
+
+#ifdef CONFIG_BT
+	ret = app_setup_bluetooth(data, &cipher);
+	if (ret) {
+		LOG_ERR("failed to init bluetooth: %d", ret);
 		app_unrecoverable_error();
 		return;
 	}

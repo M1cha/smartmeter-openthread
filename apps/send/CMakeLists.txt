@@ -10,6 +10,12 @@ target_sources(app PRIVATE
 	src/uart.c
 )
 
+if (CONFIG_BT)
+target_sources(app PRIVATE
+	src/bluetooth.c
+)
+endif()
+
 if (CONFIG_LORA)
 target_sources(app PRIVATE
 	src/lora.c

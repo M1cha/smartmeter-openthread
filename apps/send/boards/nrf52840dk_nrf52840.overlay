@@ -1,0 +1,29 @@
+/ {
+	chosen {
+		app,uart = &uart1;
+	};
+};
+
+/delete-node/ &storage_partition;
+
+&uart1 {
+	current-speed = <9600>;
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		keys: partition@f8000 {
+			label = "keys";
+			reg = <0x000f8000 DT_SIZE_K(1)>;
+		};
+
+		storage_partition: partition@f9000 {
+			label = "storage";
+			reg = <0x000f9000 0x00007000>;
+		};
+	};
+};

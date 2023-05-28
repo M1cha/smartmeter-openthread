@@ -128,6 +128,8 @@ static void sml_data_cb(void *const data_, const struct smr_callback_data *const
 	LOG_INF("power:%llu energy:%llu",
 		(unsigned long long)(data->active_power / data->num_samples),
 		(unsigned long long)data->active_energy);
+
+	app_uart_data_received(active_energy, active_power);
 }
 
 int app_setup_uart(struct app_data *const data, const struct device *const dev)
