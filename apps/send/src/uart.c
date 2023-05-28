@@ -67,7 +67,7 @@ static void uart_async_callback(const struct device *const dev, struct uart_even
 	}
 }
 
-static struct smr_context smlctx;
+static struct smr_context __aligned(8) smlctx;
 static void uart_rx_work_handler(struct k_work *work)
 {
 	int ret;
