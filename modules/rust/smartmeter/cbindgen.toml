@@ -1,5 +1,6 @@
 language = "C"
 style = "tag"
+include_guard = "SMARTMETER_RUST_H"
 
 [defines]
 "feature = logger" = "CONFIG_SMARTMETER_RUST_LOGGER"
