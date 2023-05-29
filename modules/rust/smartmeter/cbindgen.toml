@@ -17,6 +17,7 @@ prefix = "smr_"
 "CallbackData" = "callback_data"
 "Value" = "value"
 "Cipher" = "cipher"
+"SmrU128" = "u128"
 
 [export.mangle]
 rename_types = "SnakeCase"

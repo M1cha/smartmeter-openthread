@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
-#include <zephyr/random/rand32.h>
+#include <zephyr/settings/settings.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/types.h>
@@ -10,6 +10,8 @@
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main_bt, CONFIG_APP_LOG_LEVEL);
+
+#define NONCE_SAVE_STEPS 1024
 
 struct message {
 	uint8_t nonce[12];
@@ -24,6 +26,7 @@ struct mfg_data {
 
 static const struct smr_cipher *g_cipher;
 static struct bt_le_ext_adv *g_adv;
+static struct smr_u128 g_nonce;
 
 static struct mfg_data mfg_data = {
 	.company_id = { 0xff, 0xff },
@@ -55,6 +58,20 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 		return;
 	}
 
+	if (smr_u128_inc(&g_nonce)) {
+		LOG_ERR("can't increment nonce anymore");
+		return;
+	}
+
+	if (!smr_u128_has_rem(&g_nonce, NONCE_SAVE_STEPS)) {
+		ret = settings_save_one("app_bt/nonce", &g_nonce, sizeof(g_nonce));
+		if (ret) {
+			LOG_ERR("failed to save nonce: %d", ret);
+			return;
+		}
+		LOG_HEXDUMP_INF(&g_nonce, sizeof(g_nonce), "saved nonce");
+	}
+
 	struct message message = {
 		.ciphertext = {
 			// TODO: convert endianess
@@ -63,9 +80,8 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 		},
 	};
 
-	ret = sys_csrand_get(message.nonce, sizeof(message.nonce));
-	if (ret) {
-		LOG_ERR("failed to generate nonce: %d", ret);
+	if (smr_u128_to_nonce(message.nonce, sizeof(message.nonce), &g_nonce)) {
+		LOG_ERR("nonce doesn't fit into u96 anymore");
 		return;
 	}
 
@@ -94,11 +110,61 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 	k_work_schedule(&disable_advertising_work, K_SECONDS(2));
 }
 
+static int handle_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
+{
+	const char *next;
+	int rc;
+
+	if (settings_name_steq(name, "nonce", &next) && !next) {
+		struct smr_u128 new_nonce;
+
+		if (len != sizeof(new_nonce)) {
+			return -EINVAL;
+		}
+
+		rc = read_cb(cb_arg, &new_nonce, sizeof(new_nonce));
+		if (rc < 0) {
+			return rc;
+		}
+
+		LOG_HEXDUMP_INF(&new_nonce, sizeof(new_nonce), "loaded nonce");
+		g_nonce = new_nonce;
+		return 0;
+	}
+
+	return -ENOENT;
+}
+
+SETTINGS_STATIC_HANDLER_DEFINE(app_bt, "app_bt", NULL, handle_set, NULL, NULL);
+
 int app_setup_bluetooth(struct app_data *data, const struct smr_cipher *cipher)
 {
 	int ret;
 
 	g_cipher = cipher;
+
+	ret = settings_subsys_init();
+	if (ret) {
+		LOG_ERR("failed to init settings subsys: %d", ret);
+		return ret;
+	}
+
+	ret = settings_load();
+	if (ret) {
+		LOG_ERR("failed to load settings: %d", ret);
+		return ret;
+	}
+
+	// skip the nonces we might hav already used but not saved
+	if (smr_u128_add_u32(&g_nonce, NONCE_SAVE_STEPS)) {
+		return -EINVAL;
+	}
+
+	ret = settings_save_one("app_bt/nonce", &g_nonce, sizeof(g_nonce));
+	if (ret) {
+		LOG_ERR("failed to save nonce: %d", ret);
+		return ret;
+	}
 
 	LOG_INF("Starting Broadcaster");
 

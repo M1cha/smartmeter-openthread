@@ -235,6 +235,59 @@ pub extern "C" fn smr_encrypt(
     0
 }
 
+#[repr(C)]
+pub struct SmrU128 {
+    /// little endian u128 buffer
+    value: [u8; 16],
+}
+
+#[no_mangle]
+pub extern "C" fn smr_u128_inc(a_raw: &mut SmrU128) -> u32 {
+    let a = u128::from_le_bytes(a_raw.value);
+    let a = match a.checked_add(1) {
+        Some(a) => a,
+        None => return 1,
+    };
+
+    a_raw.value = a.to_le_bytes();
+
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn smr_u128_add_u32(a_raw: &mut SmrU128, b: u32) -> u32 {
+    let a = u128::from_le_bytes(a_raw.value);
+    let a = match a.checked_add(b.into()) {
+        Some(a) => a,
+        None => return 1,
+    };
+
+    a_raw.value = a.to_le_bytes();
+
+    0
+}
+
+#[no_mangle]
+pub extern "C" fn smr_u128_has_rem(a_raw: &mut SmrU128, b: u32) -> bool {
+    let a = u128::from_le_bytes(a_raw.value);
+    a.checked_rem(b.into()).is_some()
+}
+
+#[no_mangle]
+pub extern "C" fn smr_u128_to_nonce(nonce: *mut u8, nonce_len: usize, a_raw: &SmrU128) -> u32 {
+    let nonce = unsafe { core::slice::from_raw_parts_mut(nonce, nonce_len) };
+
+    // check that the number is not larger than what the destination buffer can
+    // represent. This assumes little-endian.
+    if a_raw.value[nonce_len..].iter().any(|&n| n != 0x00) {
+        return 1;
+    }
+
+    nonce.copy_from_slice(&a_raw.value[..nonce_len]);
+
+    0
+}
+
 #[cfg(test)]
 mod tests {
     #[test_log::test]
