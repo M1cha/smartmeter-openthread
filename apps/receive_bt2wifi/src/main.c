@@ -29,10 +29,12 @@ static K_WORK_DELAYABLE_DEFINE(wifi_connect_work, wifi_connect_cb);
 
 static bool data_cb(struct bt_data *data, void *user_data)
 {
+	const bt_addr_le_t *addr = user_data;
+
 	LOG_INF("AD type %u", data->type);
 	LOG_HEXDUMP_DBG(data->data, data->data_len, "value");
 
-	main_api_send(data->data, data->data_len);
+	main_api_send(addr, data->data, data->data_len);
 
 	return true;
 }
@@ -47,7 +49,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 	bt_addr_le_to_str(addr, le_addr, sizeof(le_addr));
 
 	LOG_INF("[DEVICE]: %s, AD evt type %u, RSSI %i", le_addr, adv_type, rssi);
-	bt_data_parse(buf, data_cb, NULL);
+	bt_data_parse(buf, data_cb, (void *)addr);
 }
 
 static void wifi_connect(void)
@@ -165,6 +167,4 @@ void main(void)
 		LOG_ERR("Starting scanning failed: %d", ret);
 		return;
 	}
-
-	main_api_run();
 }
