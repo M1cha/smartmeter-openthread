@@ -146,7 +146,7 @@ void main(void)
 
 	struct bt_le_scan_param scan_param = {
 		.type = BT_HCI_LE_SCAN_PASSIVE,
-		.options = BT_LE_SCAN_OPT_NONE,
+		.options = BT_LE_SCAN_OPT_CODED | BT_LE_SCAN_OPT_NO_1M,
 		.interval = BT_GAP_SCAN_FAST_INTERVAL,
 		.window = BT_GAP_SCAN_FAST_WINDOW,
 	};

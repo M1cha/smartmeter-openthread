@@ -112,7 +112,7 @@ int app_setup_bluetooth(struct app_data *data, const struct smr_cipher *cipher)
 		.id = BT_ID_DEFAULT,
 		.sid = 0U,
 		.secondary_max_skip = 0U,
-		.options = BT_LE_ADV_OPT_EXT_ADV | BT_LE_ADV_OPT_USE_IDENTITY,
+		.options = BT_LE_ADV_OPT_EXT_ADV | BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_CODED,
 		.interval_min = BT_GAP_ADV_SLOW_INT_MIN,
 		.interval_max = BT_GAP_ADV_SLOW_INT_MAX,
 		.peer = NULL,
