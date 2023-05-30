@@ -32,6 +32,11 @@ config APP_RINGBUF_SIZE
 config APP_SEND_INTERVAL
 	int "lora send interval in seconds"
 	default 60
+
+config APP_SEND_TEST_EVENTS
+	bool "send test events every 5s"
+	help
+	  This can be used to test without a connection to the power meter.
 endmenu
 
 module = APP

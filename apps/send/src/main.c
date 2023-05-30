@@ -135,6 +135,18 @@ void app_uart_data_received(float active_energy, float active_power)
 #endif
 }
 
+#ifdef CONFIG_APP_SEND_TEST_EVENTS
+static struct k_work_delayable test_work;
+
+static void test(struct k_work *work)
+{
+	LOG_INF("send test event");
+	app_uart_data_received(1.0, 2.0);
+	k_work_schedule(&test_work, K_SECONDS(5));
+}
+static K_WORK_DELAYABLE_DEFINE(test_work, test);
+#endif
+
 void main(void)
 {
 	static struct app_data data_ = { 0 };
@@ -195,4 +207,8 @@ void main(void)
 		app_unrecoverable_error();
 		return;
 	}
+
+#ifdef CONFIG_APP_SEND_TEST_EVENTS
+	k_work_schedule(&test_work, K_SECONDS(5));
+#endif
 }
