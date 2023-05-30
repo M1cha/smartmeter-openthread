@@ -111,7 +111,7 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 	}
 
 	ret = bt_le_ext_adv_start(g_adv, BT_LE_EXT_ADV_START_DEFAULT);
-	if (ret) {
+	if (ret && ret != -EALREADY) {
 		LOG_ERR("Failed to start extended advertising set: %d", ret);
 		return;
 	}
@@ -120,7 +120,7 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 	g_previous_active_energy = active_energy;
 	g_previous_valid = true;
 
-	k_work_schedule(&disable_advertising_work, K_SECONDS(2));
+	k_work_reschedule(&disable_advertising_work, K_SECONDS(2));
 }
 
 static int handle_set(const char *name, size_t len, settings_read_cb read_cb, void *cb_arg)
