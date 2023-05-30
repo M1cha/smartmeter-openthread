@@ -27,6 +27,9 @@ struct mfg_data {
 static const struct smr_cipher *g_cipher;
 static struct bt_le_ext_adv *g_adv;
 static struct smr_u128 g_nonce;
+static float g_previous_active_power;
+static float g_previous_active_energy;
+static bool g_previous_valid = false;
 
 static struct mfg_data mfg_data = {
 	.company_id = { 0xff, 0xff },
@@ -52,6 +55,12 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 	int ret;
 
 	LOG_INF("Sending advertising data");
+
+	if (g_previous_valid && active_power == g_previous_active_power &&
+	    active_energy == g_previous_active_energy) {
+		LOG_DBG("ignore update that didn't change anything");
+		return;
+	}
 
 	if (!g_adv) {
 		LOG_ERR("incomplete bluetooth initialization");
@@ -106,6 +115,10 @@ void app_bluetooth_send_data(float active_energy, float active_power)
 		LOG_ERR("Failed to start extended advertising set: %d", ret);
 		return;
 	}
+
+	g_previous_active_power = active_power;
+	g_previous_active_energy = active_energy;
+	g_previous_valid = true;
 
 	k_work_schedule(&disable_advertising_work, K_SECONDS(2));
 }
