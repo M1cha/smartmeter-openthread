@@ -364,6 +364,8 @@ void main(void)
 	init_usb();
 #endif
 
+	LOG_INF("start main app");
+
 	ret = settings_subsys_init();
 	if (ret) {
 		LOG_ERR("failed to init settings subsys: %d", ret);
@@ -377,6 +379,8 @@ void main(void)
 	}
 
 #ifdef CONFIG_WIFI
+	LOG_INF("wait for wifi iface ...");
+
 	struct net_if *iface = net_if_get_default();
 	while (!net_if_is_up(iface)) {
 		k_sleep(K_MSEC(500));
