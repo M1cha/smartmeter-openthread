@@ -32,7 +32,7 @@ reference of how to use this board in zephyr.
 ### generate
 ```bash
 openssl rand -out key.bin 32
-objcopy --change-addresses 0x8028000 -I binary -O ihex key.bin key.hex
+objcopy --change-addresses 0xf8000 -I binary -O ihex key.bin key.hex
 ```
 
 ### flash
