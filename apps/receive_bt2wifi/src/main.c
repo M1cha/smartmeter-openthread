@@ -6,6 +6,10 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/types.h>
 
+#ifdef CONFIG_USB_DEVICE_STACK
+#include <zephyr/usb/usb_device.h>
+#endif
+
 #include "main.h"
 
 #include <zephyr/logging/log.h>
@@ -127,8 +131,32 @@ static void wifi_init(void)
 	wifi_connect_params.psk_length = strlen(CONFIG_TAGOIO_HTTP_WIFI_PSK);
 }
 
+#ifdef CONFIG_USB_DEVICE_STACK
+static void init_usb(void)
+{
+	const struct device *dev;
+	int ret;
+
+	dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
+	if (!device_is_ready(dev)) {
+		LOG_ERR("CDC ACM device not ready");
+		return;
+	}
+
+	ret = usb_enable(NULL);
+	if (ret != 0) {
+		LOG_ERR("Failed to enable USB");
+		return;
+	}
+}
+#endif
+
 void main(void)
 {
+#ifdef CONFIG_USB_DEVICE_STACK
+	init_usb();
+#endif
+
 	struct net_if *iface = net_if_get_default();
 	while (!net_if_is_up(iface)) {
 		k_sleep(K_MSEC(500));
