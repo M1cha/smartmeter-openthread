@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/hci.h>
-#include <zephyr/net/wifi_mgmt.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/types.h>
@@ -10,11 +9,16 @@
 #include <zephyr/usb/usb_device.h>
 #endif
 
+#ifdef CONFIG_WIFI
+#include <zephyr/net/wifi_mgmt.h>
+#endif
+
 #include "main.h"
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(receive_bt2wifi, CONFIG_APP_LOG_LEVEL);
 
+#ifdef CONFIG_WIFI
 #define CONFIG_TAGOIO_HTTP_WIFI_SSID "my-wifi"
 #define CONFIG_TAGOIO_HTTP_WIFI_PSK "0123456789"
 
@@ -30,15 +34,20 @@ static struct wifi_connect_req_params wifi_connect_params = {
 	.security = WIFI_SECURITY_TYPE_PSK,
 };
 static K_WORK_DELAYABLE_DEFINE(wifi_connect_work, wifi_connect_cb);
+#endif
 
 static bool data_cb(struct bt_data *data, void *user_data)
 {
 	const bt_addr_le_t *addr = user_data;
 
+	(void)(addr);
+
 	LOG_INF("AD type %u", data->type);
 	LOG_HEXDUMP_DBG(data->data, data->data_len, "value");
 
+#ifdef CONFIG_WIFI
 	main_api_send(addr, data->data, data->data_len);
+#endif
 
 	return true;
 }
@@ -56,6 +65,7 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi, uint8_t adv_type,
 	bt_data_parse(buf, data_cb, (void *)addr);
 }
 
+#ifdef CONFIG_WIFI
 static void wifi_connect(void)
 {
 	struct net_if *iface = net_if_get_default();
@@ -130,6 +140,7 @@ static void wifi_init(void)
 	wifi_connect_params.ssid_length = strlen(CONFIG_TAGOIO_HTTP_WIFI_SSID);
 	wifi_connect_params.psk_length = strlen(CONFIG_TAGOIO_HTTP_WIFI_PSK);
 }
+#endif
 
 #ifdef CONFIG_USB_DEVICE_STACK
 static void init_usb(void)
@@ -153,10 +164,13 @@ static void init_usb(void)
 
 void main(void)
 {
+	int ret;
+
 #ifdef CONFIG_USB_DEVICE_STACK
 	init_usb();
 #endif
 
+#ifdef CONFIG_WIFI
 	struct net_if *iface = net_if_get_default();
 	while (!net_if_is_up(iface)) {
 		k_sleep(K_MSEC(500));
@@ -166,11 +180,12 @@ void main(void)
 	wifi_init();
 	wifi_connect();
 
-	int ret = main_api_init();
+	ret = main_api_init();
 	if (ret) {
 		LOG_ERR("failed to init main API: %d", ret);
 		return;
 	}
+#endif
 
 	struct bt_le_scan_param scan_param = {
 		.type = BT_HCI_LE_SCAN_PASSIVE,
