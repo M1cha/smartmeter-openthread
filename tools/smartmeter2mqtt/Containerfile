@@ -1,0 +1,6 @@
+FROM docker.io/alpine:3.17
+
+COPY smartmeter2mqtt /opt
+RUN chmod +x /opt/smartmeter2mqtt
+
+ENTRYPOINT ["/opt/smartmeter2mqtt"]
