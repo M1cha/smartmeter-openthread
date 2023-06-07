@@ -135,7 +135,7 @@ async fn handle_powermeter_frame(
     let active_power = f32::from_le_bytes(message[0..4].try_into().unwrap());
     let active_energy = f32::from_le_bytes(message[4..].try_into().unwrap());
 
-    tracing::info!("active_power={active_power}, active_energy={active_power}",);
+    tracing::debug!("active_power={active_power}, active_energy={active_power}",);
 
     if active_power.is_nan() || active_energy.is_nan() || active_energy == 0.0 {
         return Ok(());
@@ -178,7 +178,7 @@ async fn handle_co2sensor_frame(
     let outputstatus = u16::from_le_bytes(message[4..6].try_into().unwrap());
     let spaceco2 = u16::from_le_bytes(message[6..8].try_into().unwrap());
 
-    tracing::info!(
+    tracing::debug!(
         "meterstatus={meterstatus}, alarmstatus={alarmstatus} outputstatus={outputstatus} spaceco2={spaceco2}",
     );
 
