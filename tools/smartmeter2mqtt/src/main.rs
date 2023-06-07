@@ -221,7 +221,7 @@ async fn handle_frame(
         .devices
         .values()
         .find(|device| device.leaddr == leaddr)
-        .context("unknown device")?;
+        .with_context(|| format!("unknown device: {leaddr}"))?;
     let plaintext = device
         .cipher
         .decrypt(nonce, ciphertext)
