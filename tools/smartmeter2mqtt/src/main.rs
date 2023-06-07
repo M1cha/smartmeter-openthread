@@ -84,6 +84,8 @@ impl std::fmt::Display for LeAddr {
 #[serde(rename_all = "snake_case")]
 enum DeviceType {
     PowerMeter,
+    #[serde(rename = "co2sensor")]
+    Co2Sensor,
 }
 
 #[derive(serde::Deserialize)]
@@ -162,6 +164,67 @@ async fn handle_powermeter_frame(
     Ok(())
 }
 
+async fn handle_co2sensor_frame(
+    device: &Device,
+    client: &rumqttc::AsyncClient,
+    message: &[u8],
+) -> anyhow::Result<()> {
+    if message.len() != 8 {
+        anyhow::bail!("unsupported message len: {}", message.len());
+    }
+
+    let meterstatus = u16::from_le_bytes(message[0..2].try_into().unwrap());
+    let alarmstatus = u16::from_le_bytes(message[2..4].try_into().unwrap());
+    let outputstatus = u16::from_le_bytes(message[4..6].try_into().unwrap());
+    let spaceco2 = u16::from_le_bytes(message[6..8].try_into().unwrap());
+
+    tracing::info!(
+        "meterstatus={meterstatus}, alarmstatus={alarmstatus} outputstatus={outputstatus} spaceco2={spaceco2}",
+    );
+
+    client
+        .publish(
+            format!("smartmeter/{}/meterstatus", device.leaddr.address),
+            rumqttc::mqttbytes::QoS::AtMostOnce,
+            false,
+            meterstatus.to_string(),
+        )
+        .await
+        .context("failed to publish meterstatus")?;
+
+    client
+        .publish(
+            format!("smartmeter/{}/alarmstatus", device.leaddr.address),
+            rumqttc::mqttbytes::QoS::AtMostOnce,
+            false,
+            alarmstatus.to_string(),
+        )
+        .await
+        .context("failed to publish alarmstatus")?;
+
+    client
+        .publish(
+            format!("smartmeter/{}/outputstatus", device.leaddr.address),
+            rumqttc::mqttbytes::QoS::AtMostOnce,
+            false,
+            outputstatus.to_string(),
+        )
+        .await
+        .context("failed to publish outputstatus")?;
+
+    client
+        .publish(
+            format!("smartmeter/{}/spaceco2", device.leaddr.address),
+            rumqttc::mqttbytes::QoS::AtMostOnce,
+            false,
+            spaceco2.to_string(),
+        )
+        .await
+        .context("failed to publish spaceco2")?;
+
+    Ok(())
+}
+
 async fn handle_frame(
     config: &Config,
     nonces: &SharedNonceList,
@@ -231,6 +294,9 @@ async fn handle_frame(
         DeviceType::PowerMeter => handle_powermeter_frame(device, client, &plaintext)
             .await
             .context("can't handle powermeter frame"),
+        DeviceType::Co2Sensor => handle_co2sensor_frame(device, client, &plaintext)
+            .await
+            .context("can't handle co2sensor frame"),
     }
 }
 
