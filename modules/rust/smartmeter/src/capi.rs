@@ -3,7 +3,7 @@
 //! Ideally, this should be the only module with unsafe code in it.
 
 use chacha20poly1305::aead::AeadInPlace as _;
-use chacha20poly1305::aead::NewAead as _;
+use chacha20poly1305::KeyInit as _;
 use core::future::Future as _;
 
 pub type ReadFn =
