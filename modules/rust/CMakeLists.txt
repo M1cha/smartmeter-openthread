@@ -3,11 +3,13 @@ if (CONFIG_SMARTMETER_RUST_LOGGER)
 set(features "logger")
 endif()
 
+set(target thumbv7m-none-eabi)
+
 if (CONFIG_SMARTMETER_DEBUG_PROFILE)
-set(lib_file "${CMAKE_CURRENT_BINARY_DIR}/target/thumbv6m-none-eabi/debug/libsmartmeter.a")
+set(lib_file "${CMAKE_CURRENT_BINARY_DIR}/target/${target}/debug/libsmartmeter.a")
 set(profile "")
 else()
-set(lib_file "${CMAKE_CURRENT_BINARY_DIR}/target/thumbv6m-none-eabi/release/libsmartmeter.a")
+set(lib_file "${CMAKE_CURRENT_BINARY_DIR}/target/${target}/release/libsmartmeter.a")
 set(profile "--release")
 endif()
 
@@ -17,7 +19,7 @@ set(include_file "${include_dir}/smartmeter-rust.h")
 add_custom_target(smartmeter_rust-build
 	BYPRODUCTS "${lib_file}"
 	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	COMMAND cargo build -Z build-std=core,panic_abort -Z build-std-features=panic_immediate_abort --target thumbv6m-none-eabi --no-default-features ${profile} --target-dir "${CMAKE_CURRENT_BINARY_DIR}/target"  --features "${features}"
+	COMMAND cargo build -Z build-std=core,panic_abort -Z build-std-features=panic_immediate_abort --target "${target}" --no-default-features ${profile} --target-dir "${CMAKE_CURRENT_BINARY_DIR}/target"  --features "${features}"
 	VERBATIM
 	USES_TERMINAL
 )
