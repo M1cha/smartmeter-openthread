@@ -189,7 +189,7 @@ macro_rules! reader {
 
 macro_rules! read_impl {
     ($name:ident, $fut:ident) => {
-        fn $name<'a>(&'a mut self) -> $fut<&'a mut Self>
+        fn $name(&mut self) -> $fut<&mut Self>
         where
             Self: Unpin,
         {

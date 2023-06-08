@@ -236,23 +236,23 @@ impl<'a, R: io::AsyncRead + Unpin> List<'a, R> {
             Ok(Some(match ty {
                 TlvType::String if len == 0 => Item::None,
                 TlvType::String => Item::String(String {
-                    reader: &mut self.reader,
+                    reader: self.reader,
                     len,
                 }),
                 TlvType::Boolean => Item::Boolean(Boolean {
-                    reader: &mut self.reader,
+                    reader: self.reader,
                     len,
                 }),
                 TlvType::Integer => Item::Integer(Integer {
-                    reader: &mut self.reader,
+                    reader: self.reader,
                     len,
                 }),
                 TlvType::Unsigned => Item::Unsigned(Unsigned {
-                    reader: &mut self.reader,
+                    reader: self.reader,
                     len,
                 }),
                 TlvType::List => Item::List(List {
-                    reader: &mut self.reader,
+                    reader: self.reader,
                     len,
                 }),
                 TlvType::Other(ty) => return Err(Error::UnsupportedTlvType { ty }),

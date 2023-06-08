@@ -258,7 +258,7 @@ fn main() {
 
     std::process::Command::new("pdftotext")
         .arg("-layout")
-        .arg(&doc_pdf_path)
+        .arg(doc_pdf_path)
         .arg(&doc_txt_path)
         .spawn()
         .expect("failed to spawn pdf2text")
