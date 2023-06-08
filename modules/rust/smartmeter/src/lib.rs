@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
+#![feature(async_fn_in_trait)]
 //#![allow(dead_code)]
 
 mod capi;
@@ -57,77 +57,73 @@ impl MessageCallback {
 }
 
 impl<R: io::AsyncRead + Unpin> sml::Callback<R> for MessageCallback {
-    type Fut<'a> = impl core::future::Future<Output = Result<(), sml::Error>> where R:'a;
-
     fn frame_start(&mut self) {
         self.active_power = None;
         self.active_energy = None;
     }
 
-    fn message_received<'a>(
+    async fn message_received<'a>(
         &'a mut self,
         mut body: sml::types::MessageBody<'a, R>,
-    ) -> Self::Fut<'a> {
+    ) -> Result<(), sml::Error> {
         const OBIS_ACTIVE_ENERGY: &[u8] = &[0x01, 0x00, 0x01, 0x08, 0x00, 0xFF];
         const OBIS_ACTIVE_POWER: &[u8] = &[0x01, 0x00, 0x10, 0x07, 0x00, 0xFF];
 
-        async move {
-            match body.read().await? {
-                sml::types::MessageBodyEnum::GetListResponse(r) => {
-                    let mut field = r.val_list().await?;
-                    let mut list = field.parse().await?;
+        match body.read().await? {
+            sml::types::MessageBodyEnum::GetListResponse(r) => {
+                let mut field = r.val_list().await?;
+                let mut list = field.parse().await?;
 
-                    let mut buf = [0; 7];
-                    while let Some(entry) = list.next().await? {
-                        let mut field = entry.obj_name().await?;
-                        let mut obj_name = field.parse().await?;
+                let mut buf = [0; 7];
+                while let Some(entry) = list.next().await? {
+                    let mut field = entry.obj_name().await?;
+                    let mut obj_name = field.parse().await?;
 
-                        if obj_name.len() > buf.len() {
-                            continue;
-                        }
+                    if obj_name.len() > buf.len() {
+                        continue;
+                    }
 
-                        let buf = &mut buf[..obj_name.len()];
-                        obj_name.read(buf).await?;
-                        drop(obj_name);
-                        let entry = field.finish().await?;
+                    let buf = &mut buf[..obj_name.len()];
+                    obj_name.read(buf).await?;
+                    drop(obj_name);
+                    let entry = field.finish().await?;
 
-                        let (entry, scaler) = entry.scaler().await?;
-                        let scaler = scaler.unwrap_or(0);
-                        log::debug!("scaler={}", scaler);
+                    let (entry, scaler) = entry.scaler().await?;
+                    let scaler = scaler.unwrap_or(0);
+                    log::debug!("scaler={}", scaler);
 
-                        let mut field = entry.value().await?;
-                        let value = field.parse().await?.read().await?;
-                        match &*buf {
-                            OBIS_ACTIVE_POWER => {
-                                let value: u64 = value.into_i128_relaxed()?.try_into()?;
-                                log::debug!("active_power={}", value);
+                    let mut field = entry.value().await?;
+                    let value = field.parse().await?.read().await?;
+                    match &*buf {
+                        OBIS_ACTIVE_POWER => {
+                            let value: u64 = value.into_i128_relaxed()?.try_into()?;
+                            log::debug!("active_power={}", value);
 
-                                if self.active_power.is_some() {
-                                    return Err(sml::Error::UnexpectedValue);
-                                }
-
-                                self.active_power = Some(Value::new(scaler, value));
+                            if self.active_power.is_some() {
+                                return Err(sml::Error::UnexpectedValue);
                             }
 
-                            OBIS_ACTIVE_ENERGY => {
-                                let value: u64 = value.into_i128_relaxed()?.try_into()?;
-                                log::debug!("active_energy={}", value);
-
-                                if self.active_energy.is_some() {
-                                    return Err(sml::Error::UnexpectedValue);
-                                }
-
-                                self.active_energy = Some(Value::new(scaler, value));
-                            }
-                            _ => continue,
+                            self.active_power = Some(Value::new(scaler, value));
                         }
+
+                        OBIS_ACTIVE_ENERGY => {
+                            let value: u64 = value.into_i128_relaxed()?.try_into()?;
+                            log::debug!("active_energy={}", value);
+
+                            if self.active_energy.is_some() {
+                                return Err(sml::Error::UnexpectedValue);
+                            }
+
+                            self.active_energy = Some(Value::new(scaler, value));
+                        }
+                        _ => continue,
                     }
                 }
-                _ => return Ok(()),
             }
-
-            Ok(())
+            _ => return Ok(()),
         }
+
+        Ok(())
     }
 
     fn frame_finished(&mut self, valid: bool) {

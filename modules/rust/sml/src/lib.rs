@@ -1,8 +1,10 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![feature(generic_associated_types)]
 #![feature(type_alias_impl_trait)]
 #![feature(assert_matches)]
 #![feature(result_option_inspect)]
+#![feature(impl_trait_in_assoc_type)]
+#![feature(async_fn_in_trait)]
+#![feature(impl_trait_projections)]
 
 mod error;
 mod frame;
@@ -39,22 +41,18 @@ pub mod types {
     }
 
     pub trait FromTlvItem<'a, R>: Sized {
-        type Future: core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn from_tlv_item(list: crate::tlv::Item<'a, R>) -> Self::Future;
+        async fn from_tlv_item(list: crate::tlv::Item<'a, R>) -> Result<Self, crate::Error>;
     }
 
     macro_rules! impl_fromtlvitem {
         ($name:ident, $tlvty:ident, $intofn:ident) => {
             impl<'a, R: io::AsyncRead + Unpin + 'a> FromTlvItem<'a, R> for $name {
-                type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-                fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Self::Future {
-                    async move {
-                        match item {
-                            crate::tlv::Item::$tlvty(v) => Ok(v.$intofn().await?),
-                            _ => Err(crate::Error::UnexpectedValue),
-                        }
+                async fn from_tlv_item(
+                    item: crate::tlv::Item<'a, R>,
+                ) -> Result<Self, crate::Error> {
+                    match item {
+                        crate::tlv::Item::$tlvty(v) => Ok(v.$intofn().await?),
+                        _ => Err(crate::Error::UnexpectedValue),
                     }
                 }
             }
@@ -77,30 +75,26 @@ pub mod types {
     where
         Self: Sized,
     {
-        type Future: core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'s: 'b>(list: &'s mut crate::tlv::List<'r, R>) -> Self::Future;
+        async fn parse_field<'s: 'b>(
+            list: &'s mut crate::tlv::List<'r, R>,
+        ) -> Result<Self, crate::Error>;
     }
 
     impl<'r: 'b, 'b, R: io::AsyncRead + Unpin + 'r> ParseField<'r, 'b, R>
         for crate::tlv::String<'b, R>
     {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'r, R>) -> Self::Future {
-            async move { list.next_string().await }
+        async fn parse_field<'l: 'b>(
+            list: &'l mut crate::tlv::List<'r, R>,
+        ) -> Result<Self, crate::Error> {
+            list.next_string().await
         }
     }
 
     impl<'a, R: io::AsyncRead + Unpin + 'a> FromTlvItem<'a, R> for crate::tlv::String<'a, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Self::Future {
-            async move {
-                match item {
-                    crate::tlv::Item::String(s) => Ok(s),
-                    _ => Err(crate::Error::UnexpectedValue),
-                }
+        async fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Result<Self, crate::Error> {
+            match item {
+                crate::tlv::Item::String(s) => Ok(s),
+                _ => Err(crate::Error::UnexpectedValue),
             }
         }
     }
@@ -150,13 +144,11 @@ trait ReaderEnded {
 
 /// callbacks for received SML messages
 pub trait Callback<R> {
-    type Fut<'a>: core::future::Future<Output = Result<(), Error>>
-    where
-        Self: 'a,
-        R: 'a;
-
     fn frame_start(&mut self);
-    fn message_received<'a>(&'a mut self, val: types::MessageBody<'a, R>) -> Self::Fut<'a>;
+    async fn message_received<'a>(
+        &'a mut self,
+        val: types::MessageBody<'a, R>,
+    ) -> Result<(), Error>;
     fn frame_finished(&mut self, valid: bool);
 }
 
@@ -188,59 +180,55 @@ mod tests {
     const OBIS_ACTIVE_POWER: &[u8] = &[0x01, 0x00, 0x10, 0x07, 0x00, 0xFF];
 
     impl<R: io::AsyncRead + Unpin> crate::Callback<R> for TestCallback {
-        type Fut<'a> = impl core::future::Future<Output = Result<(), crate::Error>> where R: 'a;
-
-        fn message_received<'a>(
+        async fn message_received<'a>(
             &'a mut self,
             mut body: crate::types::MessageBody<'a, R>,
-        ) -> Self::Fut<'a> {
+        ) -> Result<(), crate::Error> {
             log::info!("got message body");
 
-            async move {
-                match body.read().await? {
-                    crate::types::MessageBodyEnum::GetListResponse(r) => {
-                        log::info!("got list response");
+            match body.read().await? {
+                crate::types::MessageBodyEnum::GetListResponse(r) => {
+                    log::info!("got list response");
 
-                        let mut field = r.val_list().await?;
-                        let mut list = field.parse().await?;
+                    let mut field = r.val_list().await?;
+                    let mut list = field.parse().await?;
 
-                        let mut buf = [0; 7];
-                        while let Some(entry) = list.next().await? {
-                            let mut field = entry.obj_name().await?;
-                            let mut obj_name = field.parse().await?;
+                    let mut buf = [0; 7];
+                    while let Some(entry) = list.next().await? {
+                        let mut field = entry.obj_name().await?;
+                        let mut obj_name = field.parse().await?;
 
-                            if obj_name.len() > buf.len() {
-                                continue;
+                        if obj_name.len() > buf.len() {
+                            continue;
+                        }
+
+                        let buf = &mut buf[..obj_name.len()];
+                        obj_name.read(buf).await?;
+                        drop(obj_name);
+                        let entry = field.finish().await?;
+
+                        let (entry, scaler) = entry.scaler().await?;
+                        let scaler = scaler.unwrap_or(0);
+                        log::debug!("scaler={}", scaler);
+
+                        let mut field = entry.value().await?;
+                        let value = field.parse().await?.read().await?;
+                        match &*buf {
+                            OBIS_ACTIVE_POWER => {
+                                log::debug!("active_power={}", value.into_i128_relaxed()?);
                             }
 
-                            let buf = &mut buf[..obj_name.len()];
-                            obj_name.read(buf).await?;
-                            drop(obj_name);
-                            let entry = field.finish().await?;
-
-                            let (entry, scaler) = entry.scaler().await?;
-                            let scaler = scaler.unwrap_or(0);
-                            log::debug!("scaler={}", scaler);
-
-                            let mut field = entry.value().await?;
-                            let value = field.parse().await?.read().await?;
-                            match &*buf {
-                                OBIS_ACTIVE_POWER => {
-                                    log::debug!("active_power={}", value.into_i128_relaxed()?);
-                                }
-
-                                OBIS_ACTIVE_ENERGY => {
-                                    log::debug!("active_energy={}", value.into_i128_relaxed()?);
-                                }
-                                _ => continue,
+                            OBIS_ACTIVE_ENERGY => {
+                                log::debug!("active_energy={}", value.into_i128_relaxed()?);
                             }
+                            _ => continue,
                         }
                     }
-                    _ => return Ok(()),
                 }
-
-                Ok(())
+                _ => return Ok(()),
             }
+
+            Ok(())
         }
 
         fn frame_start(&mut self) {}

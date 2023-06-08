@@ -78,28 +78,20 @@
         }
 
         impl<'a, R: 'a> FromTlvItem<'a, R> for {{structname}}<'a, R> {
-            type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-            fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Self::Future {
-                async move {
-                    match item {
-                        crate::tlv::Item::List(list) => Ok(Self {list}),
-                        _ => Err(crate::Error::UnexpectedValue),
-                    }
+            async fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Result<Self, crate::Error> {
+                match item {
+                    crate::tlv::Item::List(list) => Ok(Self {list}),
+                    _ => Err(crate::Error::UnexpectedValue),
                 }
             }
         }
 
         {% if id == 0 %}
             impl<'a: 'b, 'b, R: io::AsyncRead + Unpin + 'a> ParseField<'a, 'b, R> for {{structname}}<'b, R> {
-                type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-                fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Self::Future {
-                    async move {
-                        Ok(Self {
-                            list: list.next_list().await?,
-                        })
-                    }
+                async fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Result<Self, crate::Error> {
+                    Ok(Self {
+                        list: list.next_list().await?,
+                    })
                 }
             }
         {% endif %}
@@ -164,14 +156,10 @@
     }
 
     impl<'a: 'b, 'b, R: io::AsyncRead + Unpin + 'a> ParseField<'a, 'b, R> for {{structname}}<'b, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Self::Future {
-            async move {
-                Ok(Self {
-                    list: list.next_list().await?,
-                })
-            }
+        async fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Result<Self, crate::Error> {
+            Ok(Self {
+                list: list.next_list().await?,
+            })
         }
     }
 
@@ -200,11 +188,9 @@
     }
 
     impl<'a: 'b, 'b, R: io::AsyncRead + Unpin + 'a> ParseField<'a, 'b, R> for {{structname}}<'a, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Self::Future {
+        async fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Result<Self, crate::Error> {
             log::error!("not implemented: {{structname}}");
-            async move { Err(crate::Error::UnexpectedValue) }
+            Err(crate::Error::UnexpectedValue)
         }
     }
 {% endmacro %}
@@ -238,35 +224,27 @@
     }
 
     impl<'r: 'b, 'b, R: io::AsyncRead + Unpin + 'r> ParseField<'r, 'b, R> for {{structname}}<'b, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'r, R>) -> Self::Future {
-            async move {
-                let list = list.next_list().await?;
-                if list.len() != 2 {
-                    return Err(crate::Error::UnsupportedLen{len: list.len()});
-                }
-
-                Ok(Self {
-                    list,
-                    parsed: false,
-                })
+        async fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'r, R>) -> Result<Self, crate::Error> {
+            let list = list.next_list().await?;
+            if list.len() != 2 {
+                return Err(crate::Error::UnsupportedLen{len: list.len()});
             }
+
+            Ok(Self {
+                list,
+                parsed: false,
+            })
         }
     }
 
     impl<'a, R: 'a> FromTlvItem<'a, R> for {{structname}}<'a, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Self::Future {
-            async move {
-                match item {
-                    crate::tlv::Item::List(list) => Ok(Self {
-                        list,
-                        parsed: false,
-                    }),
-                    _ => Err(crate::Error::UnexpectedValue),
-                }
+        async fn from_tlv_item(item: crate::tlv::Item<'a, R>) -> Result<Self, crate::Error> {
+            match item {
+                crate::tlv::Item::List(list) => Ok(Self {
+                    list,
+                    parsed: false,
+                }),
+                _ => Err(crate::Error::UnexpectedValue),
             }
         }
     }
@@ -311,14 +289,10 @@
     }
 
     impl<'a: 'b, 'b, R: io::AsyncRead + Unpin + 'a> ParseField<'a, 'b, R> for {{structname}}<'b, R> {
-        type Future = impl core::future::Future<Output = Result<Self, crate::Error>>;
-
-        fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Self::Future {
-            async move {
-                Ok(Self {
-                    item: list.next_any().await?,
-                })
-            }
+        async fn parse_field<'l: 'b>(list: &'l mut crate::tlv::List<'a, R>) -> Result<Self, crate::Error> {
+            Ok(Self {
+                item: list.next_any().await?,
+            })
         }
     }
 
