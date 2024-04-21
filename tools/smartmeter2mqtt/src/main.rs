@@ -86,6 +86,8 @@ enum DeviceType {
     PowerMeter,
     #[serde(rename = "co2sensor")]
     Co2Sensor,
+    #[serde(rename = "pms5003")]
+    PMS5003,
 }
 
 #[derive(serde::Deserialize)]
@@ -225,6 +227,47 @@ async fn handle_co2sensor_frame(
     Ok(())
 }
 
+async fn handle_pms5003_frame(
+    device: &Device,
+    client: &rumqttc::AsyncClient,
+    message: &[u8],
+) -> anyhow::Result<()> {
+    if message.len() != 12 * 2 {
+        anyhow::bail!("unsupported message len: {}", message.len());
+    }
+
+    let mapping = [
+        "pm1.0_std",
+        "pm2.5_std",
+        "pm10.0_std",
+        "pm1.0_env",
+        "pm2.5_env",
+        "pm10.0_env",
+        "particles_0.3",
+        "particles_0.5",
+        "particles_1.0",
+        "particles_2.5",
+        "particles_5.0",
+        "particles_10.0",
+    ];
+
+    for (index, name) in mapping.iter().enumerate() {
+        let value = u16::from_le_bytes(message[index * 2..index * 2 + 2].try_into().unwrap());
+
+        client
+            .publish(
+                format!("smartmeter/{}/{}", device.leaddr.address, name),
+                rumqttc::mqttbytes::QoS::AtMostOnce,
+                false,
+                value.to_string(),
+            )
+            .await
+            .context("failed to publish channel")?;
+    }
+
+    Ok(())
+}
+
 async fn handle_frame(
     config: &Config,
     nonces: &SharedNonceList,
@@ -297,6 +340,9 @@ async fn handle_frame(
         DeviceType::Co2Sensor => handle_co2sensor_frame(device, client, &plaintext)
             .await
             .context("can't handle co2sensor frame"),
+        DeviceType::PMS5003 => handle_pms5003_frame(device, client, &plaintext)
+            .await
+            .context("can't handle pms5003 frame"),
     }
 }
 
