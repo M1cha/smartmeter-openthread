@@ -1,5 +1,8 @@
 #include <stdio.h>
+#include <zephyr/net/net_context.h>
 #include <zephyr/net/socket.h>
+#include <zephyr/net_buf.h>
+#include <zephyr/posix/arpa/inet.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(main_api, CONFIG_APP_LOG_LEVEL);

@@ -356,7 +356,7 @@ SHELL_STATIC_SUBCMD_SET_CREATE(app_commands,
 			       SHELL_SUBCMD_SET_END);
 SHELL_CMD_REGISTER(app, &app_commands, "App commands", NULL);
 
-void main(void)
+int main(void)
 {
 	int ret;
 
@@ -369,13 +369,13 @@ void main(void)
 	ret = settings_subsys_init();
 	if (ret) {
 		LOG_ERR("failed to init settings subsys: %d", ret);
-		return;
+		return ret;
 	}
 
 	ret = settings_load();
 	if (ret) {
 		LOG_ERR("failed to load settings: %d", ret);
-		return;
+		return ret;
 	}
 
 #ifdef CONFIG_WIFI
@@ -393,7 +393,7 @@ void main(void)
 	ret = main_api_init();
 	if (ret) {
 		LOG_ERR("failed to init main API: %d", ret);
-		return;
+		return ret;
 	}
 #endif
 
@@ -410,7 +410,7 @@ void main(void)
 	ret = bt_enable(NULL);
 	if (ret) {
 		LOG_ERR("Bluetooth init failed: %d", ret);
-		return;
+		return ret;
 	}
 
 	LOG_INF("Bluetooth initialized");
@@ -418,6 +418,8 @@ void main(void)
 	ret = bt_le_scan_start(&scan_param, scan_cb);
 	if (ret) {
 		LOG_ERR("Starting scanning failed: %d", ret);
-		return;
+		return ret;
 	}
+
+	return 0;
 }
