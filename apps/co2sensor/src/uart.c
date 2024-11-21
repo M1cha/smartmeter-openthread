@@ -54,11 +54,8 @@ int app_setup_uart(void)
 		uint16_t outputstatus = regs[2];
 		uint16_t spaceco2 = regs[3];
 
-		LOG_INF("meter=0x%04x alarm=0x%04x output=0x%04x co2=%u",
-			meterstatus,
-			alarmstatus,
-			outputstatus,
-			spaceco2);
+		LOG_INF("meter=0x%04x alarm=0x%04x output=0x%04x co2=%u", meterstatus, alarmstatus,
+			outputstatus, spaceco2);
 
 		app_bluetooth_send_data(meterstatus, alarmstatus, outputstatus, spaceco2);
 	}

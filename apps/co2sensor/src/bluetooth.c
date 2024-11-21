@@ -47,7 +47,8 @@ static void disable_advertising(struct k_work *work)
 }
 static K_WORK_DELAYABLE_DEFINE(disable_advertising_work, disable_advertising);
 
-void app_bluetooth_send_data(uint16_t meterstatus, uint16_t alarmstatus, uint16_t outputstatus, uint16_t spaceco2)
+void app_bluetooth_send_data(uint16_t meterstatus, uint16_t alarmstatus, uint16_t outputstatus,
+			     uint16_t spaceco2)
 {
 	int ret;
 
