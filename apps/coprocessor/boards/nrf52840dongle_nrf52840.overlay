@@ -1,0 +1,10 @@
+/ {
+	chosen {
+		zephyr,ot-uart = &cdc_acm_uart;
+		/delete-property/ zephyr,console;
+		/delete-property/ zephyr,shell-uart;
+		/delete-property/ zephyr,bt-mon-uart;
+		/delete-property/ zephyr,bt-c2h-uart;
+	};
+};
+
