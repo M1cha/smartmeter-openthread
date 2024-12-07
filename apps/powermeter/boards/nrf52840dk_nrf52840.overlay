@@ -1,0 +1,10 @@
+/ {
+	chosen {
+		app,uart = &uart1;
+	};
+};
+
+&uart1 {
+	status = "okay";
+	current-speed = <9600>;
+};

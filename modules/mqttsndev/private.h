@@ -1,0 +1,4 @@
+extern struct in6_addr mqttsndev_gateway_ip;
+extern uint16_t mqttsndev_gateway_port;
+extern uint8_t mqttsndev_client_id[CONFIG_SMARTMETER_MQTTSN_DEVICE_MAX_CLIENTID_LENGTH];
+extern size_t mqttsndev_client_id_length;

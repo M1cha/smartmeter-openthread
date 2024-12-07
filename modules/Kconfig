@@ -1,4 +1,4 @@
 menu "modules"
+rsource "mqttsndev/Kconfig"
 rsource "rust/Kconfig"
-rsource "temprng/Kconfig"
 endmenu

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script=$(readlink -f "$0")
+scriptpath=$(dirname "$script")
+repo_root=$(git -C "$scriptpath" rev-parse --show-toplevel)
+iidfile="/tmp/.smartmeter-iid-nrfutil"
+
+podman build \
+	-f "$repo_root/container/Containerfile.nrfutil" \
+	--iidfile "$iidfile" \
+	"$repo_root/container"
+iid=$(cat "$iidfile")
+
+exec podman run \
+	--rm \
+	-it \
+	--net=none \
+	--privileged \
+	-v /dev:/dev \
+	-v "$PWD:$PWD" \
+	-w "$PWD" \
+	"$iid" \
+	nrfutil \
+	"$@"

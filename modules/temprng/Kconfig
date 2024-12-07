@@ -1,4 +1,0 @@
-config SMARTMETER_TEMPRNG
-	bool "temperature sensor RNG"
-	depends on SOC_FAMILY_STM32
-	select ENTROPY_HAS_DRIVER

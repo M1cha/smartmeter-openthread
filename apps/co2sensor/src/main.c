@@ -1,131 +1,118 @@
-#include <smartmeter-rust.h>
-#include <zephyr/device.h>
-#include <zephyr/storage/flash_map.h>
-#include <zephyr/sys/reboot.h>
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#ifdef CONFIG_USB_DEVICE_STACK
-#include <zephyr/usb/usb_device.h>
-#endif
-
-#include "main.h"
+#include <smartmeter/mqttsndev.h>
+#include <zephyr/kernel.h>
+#include <zephyr/settings/settings.h>
+#include <zephyr/modbus/modbus.h>
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
+LOG_MODULE_REGISTER(co2sensor, CONFIG_APP_LOG_LEVEL);
 
-struct smr_cipher {
-	uint8_t buf[32];
+#define DEFAULT_MODBUS_NODE DT_CHOSEN(app_modbus)
+BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_MODBUS_NODE, okay), "No default modbus specified in DT");
+
+static uint16_t meterstatus;
+static uint16_t alarmstatus;
+static uint16_t outputstatus;
+static uint16_t spaceco2;
+
+static int client_iface;
+static const struct modbus_iface_param client_param = {
+	.mode = MODBUS_MODE_RTU,
+	.rx_timeout = 50000,
+	.serial = {
+		.baud = 9600,
+		.parity = UART_CFG_PARITY_NONE,
+		.stop_bits_client = UART_CFG_STOP_BITS_2,
+	},
 };
 
-void app_unrecoverable_error(void)
+static int init_modbus_client(void)
 {
-	LOG_ERR("unrecoverable app error. wait a bit and reboot");
-	k_sleep(K_MSEC(10000));
-	LOG_ERR("Reboot now ...");
-	sys_reboot(SYS_REBOOT_COLD);
+	const char iface_name[] = { DEVICE_DT_NAME(DEFAULT_MODBUS_NODE) };
+
+	client_iface = modbus_iface_get_by_name(iface_name);
+
+	return modbus_init_client(client_iface, client_param);
 }
 
-#define KEYSIZE 32
 
-static int read_key(uint8_t key[KEYSIZE])
-{
+static int publish_callback(struct mqtt_sn_client*const client) {
+	static struct mqtt_sn_data topic_meterstatus = MQTT_SN_DATA_STRING_LITERAL("/meterstatus");
+	static struct mqtt_sn_data topic_alarmstatus = MQTT_SN_DATA_STRING_LITERAL("/alarmstatus");
+	static struct mqtt_sn_data topic_outputstatus = MQTT_SN_DATA_STRING_LITERAL("/outputstatus");
+	static struct mqtt_sn_data topic_spaceco2 = MQTT_SN_DATA_STRING_LITERAL("/spaceco2");
+
 	int ret;
-	const struct flash_area *area;
-	const size_t key_size = KEYSIZE;
 
-	ret = flash_area_open(FIXED_PARTITION_ID(keys), &area);
+	LOG_INF("Publish");
+
+	ret = mqtt_sn_publish_fmt(client, MQTT_SN_QOS_0, &topic_meterstatus, false, "%u", meterstatus);
 	if (ret) {
-		LOG_ERR("failed to open flash area: %d", ret);
 		return ret;
 	}
 
-	if (area->fa_size < key_size) {
-		LOG_ERR("partition has %zu bytes only", area->fa_size);
-		ret = -1;
-		goto err_close;
-	}
-
-	const uint32_t align = flash_area_align(area);
-	if (key_size % align) {
-		LOG_ERR("flash area needs unsupported alignment of %u bytes", (unsigned)align);
-		ret = -1;
-		goto err_close;
-	}
-
-	ret = flash_area_read(area, 0, key, key_size);
+	ret = mqtt_sn_publish_fmt(client, MQTT_SN_QOS_0, &topic_alarmstatus, false, "%u", alarmstatus);
 	if (ret) {
-		LOG_ERR("failed to read key: %d", ret);
-		goto err_close;
+		return ret;
 	}
 
-	flash_area_close(area);
+	ret = mqtt_sn_publish_fmt(client, MQTT_SN_QOS_0, &topic_outputstatus, false, "%u", outputstatus);
+	if (ret) {
+		return ret;
+	}
+
+	ret = mqtt_sn_publish_fmt(client, MQTT_SN_QOS_0, &topic_spaceco2, false, "%u", spaceco2);
+	if (ret) {
+		return ret;
+	}
+
 	return 0;
-
-err_close:
-	flash_area_close(area);
-	return ret;
 }
 
-#ifdef CONFIG_USB_DEVICE_STACK
-static void init_usb(void)
-{
-	const struct device *dev;
-	int ret;
-
-	dev = DEVICE_DT_GET_ONE(zephyr_cdc_acm_uart);
-	if (!device_is_ready(dev)) {
-		LOG_ERR("CDC ACM device not ready");
-		return;
-	}
-
-	ret = usb_enable(NULL);
-	if (ret != 0) {
-		LOG_ERR("Failed to enable USB");
-		return;
-	}
-}
-#endif
-
-void main(void)
+int main(void)
 {
 	int ret;
-	uint32_t smrrc;
 
-#ifdef CONFIG_USB_DEVICE_STACK
-	init_usb();
-#endif
+	LOG_DBG("Init");
 
-	// it's okay to store this on the stack because the cipher creates a copy
-	uint8_t key[KEYSIZE];
-	(void)(read_key);
+	settings_subsys_init();
+	settings_load();
 
-	ret = read_key(key);
+	ret = init_modbus_client();
 	if (ret) {
-		LOG_ERR("failed to read key: %d", ret);
-		app_unrecoverable_error();
-		return;
+		LOG_ERR("Modbus RTU client initialization failed: %d", ret);
+		return ret;
 	}
 
-	LOG_INF("smr cipher size = %lu", smr_cipher_size());
+	mqttsndev_register_publish_callback(publish_callback);
+	mqttsndev_init();
 
-	static struct smr_cipher cipher;
-	smrrc = smr_cipher_create(&cipher, sizeof(cipher), key);
-	if (smrrc) {
-		LOG_ERR("can't create cipher: %u", smrrc);
-		app_unrecoverable_error();
-		return;
+	for (;; k_sleep(K_SECONDS(5))) {
+		uint8_t node = 0xFE;
+		uint16_t regs[4];
+
+		ret = modbus_read_input_regs(client_iface, node, 0x0000, regs, ARRAY_SIZE(regs));
+		if (ret) {
+			LOG_ERR("can't read registers %d", ret);
+			continue;
+		}
+
+		meterstatus = regs[0];
+		alarmstatus = regs[1];
+		outputstatus = regs[2];
+		spaceco2 = regs[3];
+
+		LOG_INF("meter=0x%04x alarm=0x%04x output=0x%04x co2=%u",
+			meterstatus,
+			alarmstatus,
+			outputstatus,
+			spaceco2);
+
+		mqttsndev_schedule_publish_callback();
 	}
 
-	ret = app_setup_bluetooth(&cipher);
-	if (ret) {
-		LOG_ERR("failed to init bluetooth: %d", ret);
-		app_unrecoverable_error();
-		return;
-	}
-
-	ret = app_setup_uart();
-	if (ret) {
-		LOG_ERR("failed to init UART: %d", ret);
-		app_unrecoverable_error();
-		return;
-	}
+	return 0;
 }

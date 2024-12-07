@@ -44,3 +44,26 @@ west flash -r openocd -d build-send --skip-rebuild --hex-file key.hex
 ```bash
 lora2mqtt --port /dev/ttyACM0 --baud-rate 115200 --key /path/to/key.bin --mqtt-uri "tcp://127.0.0.1:1883"
 ```
+
+coprocessor:
+```bash
+west build -b nrf52840dongle/nrf52840 smartmeter-lora/apps/coprocessor
+```
+
+router:
+```bash
+west build -S smartmeter-nrf52dk-nouart -b nrf52840dk/nrf52840 -d build-mcuboot bootloader/mcuboot/boot/zephyr
+west build -S smartmeter-thread-device -S smartmeter-nrf52dk-nouart -b nrf52840dk/nrf52840 smartmeter-lora/apps/router
+```
+
+co2sensor:
+```bash
+west build -S smartmeter-nrf52dongle-nouart -b nrf52840dongle/nrf52840 -d build-mcuboot bootloader/mcuboot/boot/zephyr
+west build -S smartmeter-thread-device -b nrf52840dongle/nrf52840 smartmeter-lora/apps/co2sensor
+```
+
+powermeter:
+```bash
+west build -b m1cha_powermeter -d build-mcuboot bootloader/mcuboot/boot/zephyr
+west build -S smartmeter-thread-device -S rtt-shell -b m1cha_powermeter smartmeter-lora/apps/powermeter/
+```

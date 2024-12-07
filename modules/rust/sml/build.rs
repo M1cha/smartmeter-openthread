@@ -261,7 +261,7 @@ fn main() {
         .arg(doc_pdf_path)
         .arg(&doc_txt_path)
         .spawn()
-        .expect("failed to spawn pdf2text")
+        .expect("failed to spawn pdftotext")
         .wait()
         .expect("failed to wait for pdftotext")
         .exit_ok()

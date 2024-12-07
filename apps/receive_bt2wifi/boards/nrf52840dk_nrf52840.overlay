@@ -1,9 +1,0 @@
-&uart1 {
-	status = "okay";
-	current-speed = <115200>;
-
-	esp32 {
-		compatible = "espressif,esp-at";
-		status = "okay";
-	};
-};

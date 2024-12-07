@@ -1,0 +1,11 @@
+FROM docker.io/golang:1.23-alpine
+
+RUN apk add --no-cache \
+	git
+
+RUN mkdir -p $GOPATH/src/mynewt.apache.org
+RUN git clone https://github.com/apache/mynewt-mcumgr-cli.git $GOPATH/src/mynewt.apache.org/mcumgr
+
+WORKDIR $GOPATH/src/mynewt.apache.org/mcumgr/mcumgr
+RUN go build
+RUN ln -s $PWD/mcumgr /usr/local/bin/

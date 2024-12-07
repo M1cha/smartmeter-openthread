@@ -1,0 +1,91 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+#include <nordic/nrf52840_qiaa.dtsi>
+#include "m1cha_powermeter-pinctrl.dtsi"
+
+/ {
+	model = "Power Meter";
+	compatible = "m1cha,powermeter";
+
+	chosen {
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+		zephyr,code-partition = &slot0_partition;
+		zephyr,ieee802154 = &ieee802154;
+	};
+
+	/* These aliases are provided for compatibility with samples */
+	aliases {
+		watchdog0 = &wdt0;
+	};
+};
+
+&reg0 {
+	status = "okay";
+};
+
+&reg1 {
+	regulator-initial-mode = <NRF5X_REG_MODE_DCDC>;
+};
+
+&gpiote {
+	status = "okay";
+};
+
+&uicr {
+	nfct-pins-as-gpios;
+	gpio-as-nreset;
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = <115200>;
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-1 = <&uart1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&ieee802154 {
+	status = "okay";
+};
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* The size of this partition ensures that MCUBoot can be built
+		 * with an RTT console, CDC ACM support, and w/o optimizations.
+		 */
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x00012000>;
+		};
+
+		slot0_partition: partition@12000 {
+			label = "image-0";
+			reg = <0x00012000 0x00075000>;
+		};
+		slot1_partition: partition@87000 {
+			label = "image-1";
+			reg = <0x00087000 0x00075000>;
+		};
+		storage_partition: partition@fc000 {
+			label = "storage";
+			reg = <0x000fc000 0x00004000>;
+		};
+	};
+};

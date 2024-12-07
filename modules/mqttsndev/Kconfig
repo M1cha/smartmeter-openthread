@@ -1,0 +1,42 @@
+config SMARTMETER_MQTTSN_DEVICE
+	bool "Enable MQTTSN device library"
+
+if SMARTMETER_MQTTSN_DEVICE
+
+config SMARTMETER_MQTTSN_DEVICE_MAX_CLIENTID_LENGTH
+	int "Max client ID length"
+	default 23
+
+config SMARTMETER_MQTTSN_DEVICE_BUFFER_SIZE
+	int "Size of the TX and RX buffers"
+	default 255
+
+config SMARTMETER_MQTTSN_DEVICE_RECONNECT_WAIT_DURATION
+	int "Number of seconds to wait before attempting a reconnect"
+	default 30
+
+config SMARTMETER_MQTTSN_DEVICE_STACK_SIZE
+	int "System workqueue stack size"
+	default 2048
+
+config SMARTMETER_MQTTSN_DEVICE_THREAD_PRIORITY
+	int "System workqueue priority"
+	default -2 if COOP_ENABLED && !PREEMPT_ENABLED
+	default  0 if !COOP_ENABLED
+	default -1
+
+config SMARTMETER_MQTTSN_DEVICE_WDT_MAX_WINDOW_MS
+	int "Watchdog max window"
+	default 120000
+	depends on WATCHDOG
+
+config SMARTMETER_MQTTSN_DEVICE_WDT_FEED_INTERVAL_MS
+	int "Watchdog feed interval"
+	default 10000
+	depends on WATCHDOG
+
+module = SMARTMETER_MQTTSN_DEVICE
+module-str = smartmeter mqttsn device
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # SMARTMETER_MQTTSN_DEVICE

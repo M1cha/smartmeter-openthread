@@ -1,0 +1,6 @@
+board:
+  name: m1cha_powermeter
+  full_name: Power Meter
+  vendor: m1cha
+  socs:
+  - name: nrf52840

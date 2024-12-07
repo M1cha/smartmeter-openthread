@@ -1,6 +1,0 @@
-if BOARD_HELTEC_LORA_NODE_151
-
-config BOARD
-	default "heltec_lora_node_151"
-
-endif # BOARD_HELTEC_LORA_NODE_151

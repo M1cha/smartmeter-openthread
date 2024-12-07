@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+
+config BOARD_M1CHA_POWERMETER
+	select SOC_NRF52840_QIAA
