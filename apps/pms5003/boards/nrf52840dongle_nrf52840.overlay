@@ -1,0 +1,9 @@
+/ {
+	chosen {
+		app,pms5003 = &uart0;
+	};
+};
+
+&uart0 {
+	current-speed = <9600>;
+};
